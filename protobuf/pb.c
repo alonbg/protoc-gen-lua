@@ -26,11 +26,11 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
-#ifdef _ALLBSD_SOURCE
-#include <machine/endian.h>
-#else
-#include <endian.h>
-#endif
+// #ifdef _ALLBSD_SOURCE
+// #include <machine/endian.h>
+// #else
+// #include <endian.h>
+// #endif
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 #define IS_LITTLE_ENDIAN
@@ -450,7 +450,7 @@ static const struct luaL_reg _pb [] = {
     {"zig_zag_decode64", zig_zag_decode64},
     {"zig_zag_encode64", zig_zag_encode64},
     {"new_iostring", iostring_new},
-    {NULL, NULL}
+    {NULL, NULL},
 };
 
 static const struct luaL_reg _c_iostring_m [] = {
@@ -459,7 +459,7 @@ static const struct luaL_reg _c_iostring_m [] = {
     {"write", iostring_write},
     {"sub", iostring_sub},
     {"clear", iostring_clear},
-    {NULL, NULL}
+    {NULL, NULL},
 };
 
 int luaopen_pb (lua_State *L)

@@ -1,10 +1,18 @@
+CC=gcc -O3
 SRC=pb.c
-
+OBJ=pb.o
 TARGET=pb.so
-CFLAGS=`pkg-config --cflags lua5.1` -std=gnu99
-LDFLAGS=`pkg-config --libs lua5.1`
 
-all:$(TARGET)
+CFLAGS=$(shell pkg-config --cflags luajit)
+LDFLAGS=$(shell pkg-config --libs luajit)
 
-$(TARGET):$(SRC)
-	gcc -O3 -shared -fPIC $(SRC) $(CFLAGS) $(LDFLAGS) -o $@
+all:$(OBJ) $(TARGET)
+
+$(OBJ):$(SRC)
+	$(CC) -o $@ -c -fPIC $^ $(CFLAGS) 
+
+$(TARGET):$(OBJ)
+	$(CC) -o $@ -O3 -shared $(LDFLAGS) $^
+
+clean:
+	rm -rf *.so *.o

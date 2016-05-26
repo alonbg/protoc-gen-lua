@@ -29,17 +29,17 @@ local tostring = tostring
 local type = type
 
 local pb = require "pb"
-local wire_format = require "wire_format"
-local type_checkers = require "type_checkers"
-local encoder = require "encoder"
-local decoder = require "decoder"
-local listener_mod = require "listener"
-local containers = require "containers"
-local descriptor = require "descriptor"
+local wire_format = require "protobuf.wire_format"
+local type_checkers = require "protobuf.type_checkers"
+local encoder = require "protobuf.encoder"
+local decoder = require "protobuf.decoder"
+local listener_mod = require "protobuf.listener"
+local containers = require "protobuf.containers"
+local descriptor = require "protobuf.descriptor"
 local FieldDescriptor = descriptor.FieldDescriptor
-local text_format = require "text_format"
+local text_format = require "protobuf.text_format"
 
-module("protobuf")
+local _M = {}
 
 local function make_descriptor(name, descriptor, usable_key)
     local meta = {
@@ -815,7 +815,6 @@ local function _AddMessageMethods(message_descriptor, message_meta)
         _AddHasExtensionMethod(message_meta)
     end
     _AddClearMethod(message_descriptor, message_meta)
---    _AddEqualsMethod(message_descriptor, message_meta)
     _AddStrMethod(message_meta)
     _AddSetListenerMethod(message_meta)
     _AddByteSizeMethod(message_descriptor, message_meta)
@@ -866,14 +865,14 @@ local function property_setter(message_meta)
 	end
 end
 
-function _AddClassAttributesForNestedExtensions(descriptor, message_meta)
+local function _AddClassAttributesForNestedExtensions(descriptor, message_meta)
     local extension_dict = descriptor._extensions_by_name
     for extension_name, extension_field in pairs(extension_dict) do
         message_meta._member[extension_name] = extension_field
     end
 end
 
-local function Message(descriptor)
+function _M.Message(descriptor)
     local message_meta = {}
     message_meta._decoders_by_tag = {}
     rawset(descriptor, "_extensions_by_name", {})
@@ -891,7 +890,7 @@ local function Message(descriptor)
     message_meta._getter = {}
     message_meta._setter = {}
     message_meta._member = {}
---    message_meta._name = descriptor.full_name
+    -- message_meta._name = descriptor.full_name
 
     local ns = setmetatable({}, message_meta._member)
     message_meta._member.__call = _InitMethod(message_meta)
@@ -918,5 +917,4 @@ local function Message(descriptor)
     return ns 
 end
 
-_M.Message = Message
-
+return setmetatable({}, { __index = _M, })
