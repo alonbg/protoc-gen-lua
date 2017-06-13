@@ -20,8 +20,7 @@ import google.protobuf.descriptor_pb2 as descriptor_pb2
 _packages = {}
 _files = {}
 _message = {}
-_prefix = "pb_table."
-_prefixNoDot = "pb_table"
+
 FDP = plugin_pb2.descriptor_pb2.FieldDescriptorProto
 
 if sys.platform == "win32":
@@ -249,8 +248,7 @@ DEFAULT_VALUE = {
 
 def code_gen_enum_item(index, enum_value, env):
     full_name = env.get_local_name() + '.' + enum_value.name
-    obj_name = full_name.upper().replace('.', '_') + '_ENUM'
-    obj_name = _prefix + obj_name
+    obj_name = "_tmp_var." + full_name.upper().replace('.', '_') + '_ENUM'
     env.descriptor.append(
         "%s = protobuf.EnumValueDescriptor();\n"% obj_name
     )
@@ -266,8 +264,7 @@ def code_gen_enum_item(index, enum_value, env):
 def code_gen_enum(enum_desc, env):
     env.enter(enum_desc.name)
     full_name = env.get_local_name()
-    obj_name = full_name.upper().replace('.', '_')
-    obj_name = _prefix + obj_name
+    obj_name = "_tmp_var." + full_name.upper().replace('.', '_')
     env.descriptor.append(
         "%s = protobuf.EnumDescriptor();\n"% obj_name
     )
@@ -287,10 +284,9 @@ def code_gen_enum(enum_desc, env):
 
 def code_gen_field(index, field_desc, env):
     full_name = env.get_local_name() + '.' + field_desc.name
-    obj_name = full_name.upper().replace('.', '_') + '_FIELD'
-    obj_name = _prefix + obj_name
+    obj_name = "_tmp_var." + full_name.upper().replace('.', '_') + '_FIELD'
     env.descriptor.append(
-        "%s = protobuf.FieldDescriptor();\n"% obj_name
+        "%s = protobuf.FieldDescriptor();\n" % obj_name
     )
 
     context = Writer(obj_name)
@@ -306,9 +302,9 @@ def code_gen_field(index, field_desc, env):
         context('.has_default_value = true\n')
         value = field_desc.default_value
         if field_desc.type == FDP.TYPE_STRING:
-            context('.default_value = "%s"\n'%value)
+            context('.default_value = "%s"\n' % value)
         else:
-            context('.default_value = %s\n'%value)
+            context('.default_value = %s\n' % value)
     else:
         context('.has_default_value = false\n')
         if field_desc.label == FDP.LABEL_REPEATED:
@@ -320,7 +316,7 @@ def code_gen_field(index, field_desc, env):
         context('.default_value = %s\n' % default_value)
 
     if field_desc.HasField('type_name'):
-        type_name = env.get_ref_name(field_desc.type_name).upper().replace('.', '_')
+        type_name = "_tmp_var." + env.get_ref_name(field_desc.type_name).upper().replace('.', '_')
         if field_desc.type == FDP.TYPE_MESSAGE:
             context('.message_type = %s\n' % type_name)
         else:
@@ -329,7 +325,7 @@ def code_gen_field(index, field_desc, env):
     if field_desc.HasField('extendee'):
         type_name = env.get_ref_name(field_desc.extendee)
         env.register.append(
-            "%s.RegisterExtension(%s)\n" % (type_name, obj_name)
+            "_M.%s.RegisterExtension(%s)\n" % (type_name, obj_name)
         )
 
     context('.type = %d\n' % field_desc.type)
@@ -340,10 +336,9 @@ def code_gen_field(index, field_desc, env):
 def code_gen_message(message_descriptor, env, containing_type = None):
     env.enter(message_descriptor.name)
     full_name = env.get_local_name()
-    obj_name = full_name.upper().replace('.', '_')
-    obj_name = _prefix + obj_name
+    obj_name = "_tmp_var." + full_name.upper().replace('.', '_')
     env.descriptor.append(
-        "%s = protobuf.Descriptor();\n"% obj_name
+        "%s = protobuf.Descriptor();\n" % obj_name
     )
 
     context = Writer(obj_name)
@@ -379,7 +374,7 @@ def code_gen_message(message_descriptor, env, containing_type = None):
     if containing_type:
         context('.containing_type = %s\n' % containing_type)
 
-    env.message.append('%s = protobuf.Message(%s)\n' % (full_name,
+    env.message.append('_M.%s = protobuf.Message(%s)\n' % (full_name,
                                                         obj_name))
 
     env.context.append(context.getvalue())
@@ -414,11 +409,13 @@ def code_gen_file(proto_file, env, is_gen):
     if is_gen:
         lua = Writer()
         write_header(lua)
-        lua('local protobuf = require "protobuf"\n')
+        lua('local protobuf = require "protobuf.protobuf"\n')
+        lua('\n\n-- _tmp_var is used to prevent error: \"main function has more than 200 local variables\"\n')
+        lua('local _tmp_var = {}\n\n')
         for i in includes:
-            lua('local %s_pb = require("%s_pb")\n' % (i, i))
-        lua("module('%s_pb')\n" % env.filename)
-	lua("local %s = {}" % (_prefixNoDot))
+            lua('%s_pb = require("%s_pb")\n' % (i, i))
+
+        lua("local _M = {}\n")
         lua('\n\n')
         map(lua, env.descriptor)
         lua('\n')
@@ -428,6 +425,8 @@ def code_gen_file(proto_file, env, is_gen):
         map(lua, env.message)
         lua('\n')
         map(lua, env.register)
+
+        lua("return setmetatable({}, { __index = _M, })")
 
         _files[env.filename+ '_pb.lua'] = lua.getvalue()
     env.exit_file()

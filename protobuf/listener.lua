@@ -17,14 +17,14 @@
 --
 local setmetatable = setmetatable
 
-module "listener"
+local _M = {}
 
 local _null_listener = {
     Modified = function()
     end
 }
 
-function NullMessageListener()
+function _M.NullMessageListener()
     return _null_listener
 end
 
@@ -40,7 +40,7 @@ local _listener_meta = {
 }
 _listener_meta.__index = _listener_meta
 
-function Listener(parent_message)
+function _M.Listener(parent_message)
     local o = {}
     o.__mode = "v"
     o._parent_message = parent_message
@@ -48,3 +48,4 @@ function Listener(parent_message)
     return setmetatable(o, _listener_meta)
 end
 
+return setmetatable({}, { __index = _M, })

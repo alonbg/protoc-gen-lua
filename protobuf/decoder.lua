@@ -22,10 +22,11 @@ local ipairs = ipairs
 local error = error
 local print = print
 
+local _M = {}
+
 local pb = require "pb"
-local encoder = require "encoder"
-local wire_format = require "wire_format"
-module "decoder"
+local encoder = require "protobuf.encoder"
+local wire_format = require "protobuf.wire_format"
 
 local _DecodeVarint = pb.varint_decoder
 local _DecodeSignedVarint = pb.signed_varint_decoder
@@ -33,7 +34,7 @@ local _DecodeSignedVarint = pb.signed_varint_decoder
 local _DecodeVarint32 = pb.varint_decoder
 local _DecodeSignedVarint32 = pb.signed_varint_decoder
 
-ReadTag = pb.read_tag
+_M.ReadTag = pb.read_tag
 
 local function _SimpleDecoder(wire_type, decode_value)
     return function(field_number, is_repeated, is_packed, key, new_default)
@@ -120,29 +121,29 @@ local function _Boolean(value)
     return value ~= 0
 end
 
-Int32Decoder = _SimpleDecoder(wire_format.WIRETYPE_VARINT, _DecodeSignedVarint32)
-EnumDecoder = Int32Decoder
+_M.Int32Decoder = _SimpleDecoder(wire_format.WIRETYPE_VARINT, _DecodeSignedVarint32)
+_M.EnumDecoder = _M.Int32Decoder
 
-Int64Decoder = _SimpleDecoder(wire_format.WIRETYPE_VARINT, _DecodeSignedVarint)
+_M.Int64Decoder = _SimpleDecoder(wire_format.WIRETYPE_VARINT, _DecodeSignedVarint)
 
-UInt32Decoder = _SimpleDecoder(wire_format.WIRETYPE_VARINT, _DecodeVarint32)
-UInt64Decoder = _SimpleDecoder(wire_format.WIRETYPE_VARINT, _DecodeVarint)
+_M.UInt32Decoder = _SimpleDecoder(wire_format.WIRETYPE_VARINT, _DecodeVarint32)
+_M.UInt64Decoder = _SimpleDecoder(wire_format.WIRETYPE_VARINT, _DecodeVarint)
 
-SInt32Decoder = _ModifiedDecoder(wire_format.WIRETYPE_VARINT, _DecodeVarint32, wire_format.ZigZagDecode32)
-SInt64Decoder = _ModifiedDecoder(wire_format.WIRETYPE_VARINT, _DecodeVarint, wire_format.ZigZagDecode64)
+_M.SInt32Decoder = _ModifiedDecoder(wire_format.WIRETYPE_VARINT, _DecodeVarint32, wire_format.ZigZagDecode32)
+_M.SInt64Decoder = _ModifiedDecoder(wire_format.WIRETYPE_VARINT, _DecodeVarint, wire_format.ZigZagDecode64)
 
-Fixed32Decoder  = _StructPackDecoder(wire_format.WIRETYPE_FIXED32, 4, string.byte('I'))
-Fixed64Decoder  = _StructPackDecoder(wire_format.WIRETYPE_FIXED64, 8, string.byte('Q'))
-SFixed32Decoder = _StructPackDecoder(wire_format.WIRETYPE_FIXED32, 4, string.byte('i'))
-SFixed64Decoder = _StructPackDecoder(wire_format.WIRETYPE_FIXED64, 8, string.byte('q'))
-FloatDecoder    = _StructPackDecoder(wire_format.WIRETYPE_FIXED32, 4, string.byte('f'))
-DoubleDecoder   = _StructPackDecoder(wire_format.WIRETYPE_FIXED64, 8, string.byte('d'))
-
-
-BoolDecoder = _ModifiedDecoder(wire_format.WIRETYPE_VARINT, _DecodeVarint, _Boolean)
+_M.Fixed32Decoder  = _StructPackDecoder(wire_format.WIRETYPE_FIXED32, 4, string.byte('I'))
+_M.Fixed64Decoder  = _StructPackDecoder(wire_format.WIRETYPE_FIXED64, 8, string.byte('Q'))
+_M.SFixed32Decoder = _StructPackDecoder(wire_format.WIRETYPE_FIXED32, 4, string.byte('i'))
+_M.SFixed64Decoder = _StructPackDecoder(wire_format.WIRETYPE_FIXED64, 8, string.byte('q'))
+_M.FloatDecoder    = _StructPackDecoder(wire_format.WIRETYPE_FIXED32, 4, string.byte('f'))
+_M.DoubleDecoder   = _StructPackDecoder(wire_format.WIRETYPE_FIXED64, 8, string.byte('d'))
 
 
-function StringDecoder(field_number, is_repeated, is_packed, key, new_default)
+_M.BoolDecoder = _ModifiedDecoder(wire_format.WIRETYPE_VARINT, _DecodeVarint, _Boolean)
+
+
+function _M.StringDecoder(field_number, is_repeated, is_packed, key, new_default)
     local DecodeVarint = _DecodeVarint
     local sub = string.sub
     --    local unicode = unicode
@@ -184,7 +185,7 @@ function StringDecoder(field_number, is_repeated, is_packed, key, new_default)
     end
 end
 
-function BytesDecoder(field_number, is_repeated, is_packed, key, new_default)
+function _M.BytesDecoder(field_number, is_repeated, is_packed, key, new_default)
     local DecodeVarint = _DecodeVarint
     local sub = string.sub
     assert(not is_packed)
@@ -225,7 +226,7 @@ function BytesDecoder(field_number, is_repeated, is_packed, key, new_default)
     end
 end
 
-function MessageDecoder(field_number, is_repeated, is_packed, key, new_default)
+function _M.MessageDecoder(field_number, is_repeated, is_packed, key, new_default)
     local DecodeVarint = _DecodeVarint
     local sub = string.sub
 
@@ -276,13 +277,13 @@ function MessageDecoder(field_number, is_repeated, is_packed, key, new_default)
     end
 end
 
-function _SkipVarint(buffer, pos, pend)
+local function _SkipVarint(buffer, pos, pend)
     local value
     value, pos = _DecodeVarint(buffer, pos)
     return pos
 end
 
-function _SkipFixed64(buffer, pos, pend)
+local function _SkipFixed64(buffer, pos, pend)
     pos = pos + 8
     if pos > pend then 
         error('Truncated message.')
@@ -290,7 +291,7 @@ function _SkipFixed64(buffer, pos, pend)
     return pos
 end
 
-function _SkipLengthDelimited(buffer, pos, pend)
+local function _SkipLengthDelimited(buffer, pos, pend)
     local size
     size, pos = _DecodeVarint(buffer, pos)
     pos = pos + size
@@ -300,7 +301,7 @@ function _SkipLengthDelimited(buffer, pos, pend)
     return pos
 end
 
-function _SkipFixed32(buffer, pos, pend)
+local function _SkipFixed32(buffer, pos, pend)
     pos = pos + 4
     if pos > pend then
         error('Truncated message.')
@@ -308,7 +309,7 @@ function _SkipFixed32(buffer, pos, pend)
     return pos
 end
 
-function _RaiseInvalidWireType(buffer, pos, pend)
+local function _RaiseInvalidWireType(buffer, pos, pend)
     error('Tag had invalid wire type.')
 end
 
@@ -334,4 +335,6 @@ function _FieldSkipper()
     end
 end
 
-SkipField = _FieldSkipper()
+_M.SkipField = _FieldSkipper()
+
+return setmetatable({}, { __index = _M, })
