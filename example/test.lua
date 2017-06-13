@@ -1,5 +1,6 @@
-package.path = package.path .. ';../protobuf/?.lua'
-package.cpath = package.cpath .. ';../protobuf/?.so'
+local pwd = os.getenv("PWD")
+package.path = package.path .. ';' .. pwd .. '/protobuf/?.lua;' .. pwd .. '/example/?.lua'
+package.cpath = package.cpath .. ';' .. pwd .. '/protobuf/?.so'
 
 local pb = require 'person_pb'
 

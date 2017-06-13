@@ -9,13 +9,10 @@ all:
 
 example:
 	@$(MAKE) -C example
-	@cp example/person_pb.lua .
-	@cp example/test.lua .
-	@cp protobuf/pb.so .
 	@echo
 	@echo "run example:"
 	@echo
-	luajit test.lua
+	luajit example/test.lua
 
 clean:
 	$(RM) *.lua *.so
