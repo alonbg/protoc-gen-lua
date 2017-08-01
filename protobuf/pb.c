@@ -26,6 +26,8 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
+#define luaL_reg      luaL_Reg
+
 // #ifdef _ALLBSD_SOURCE
 // #include <machine/endian.h>
 // #else
